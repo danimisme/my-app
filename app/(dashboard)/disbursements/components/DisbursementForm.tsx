@@ -62,8 +62,7 @@ export const BANK_OPTIONS = [
 ]
 
 export function calculateAdminFee(amount: number): number {
-  if (amount >= 25_000_000) return 10_000
-  if (amount >= 1_000_000)  return 5_000
+  if (amount >= 5_000_000)  return 5_000
   return 2_500
 }
 
