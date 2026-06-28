@@ -1,13 +1,12 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { ArrowUpDown, Eye, CheckCircle, XCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { formatRupiah, formatDate } from '@/lib/format'
 import type { Transaction } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { STATUS_STYLE } from './StatusConfig'
+import { StatusBadge } from './StatusBadge'
 
 export interface TransactionColumnsOptions {
   canApprove: boolean
@@ -90,11 +89,7 @@ export function getTransactionColumns({
 
     col.accessor('status', {
       header: 'Status',
-      cell: info => (
-        <Badge className={cn('h-auto px-2 py-0.5 font-semibold', STATUS_STYLE[info.getValue()])}>
-          {info.getValue()}
-        </Badge>
-      ),
+      cell: info => <StatusBadge status={info.getValue()} />,
     }),
 
     col.accessor('created_at', {

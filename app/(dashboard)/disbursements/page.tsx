@@ -44,10 +44,10 @@ function exportCSV(rows: Transaction[]) {
   ]
 
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
   const date = new Date().toLocaleDateString('sv') // YYYY-MM-DD
-  a.href     = url
+  a.href = url
   a.download = `disbursements-export-${date}.csv`
   a.click()
   URL.revokeObjectURL(url)
@@ -59,14 +59,14 @@ export default function DisbursementsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [globalFilter,     setGlobalFilter]     = useState('')
-  const debouncedFilter  = useDebounce(globalFilter, 500)
-  const [rowSelection,     setRowSelection]     = useState<RowSelectionState>({})
-  const [statusFilter,     setStatusFilter]     = useState<TransactionStatus | 'ALL'>(
+  const [globalFilter, setGlobalFilter] = useState('')
+  const debouncedFilter = useDebounce(globalFilter, 500)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [statusFilter, setStatusFilter] = useState<TransactionStatus | 'ALL'>(
     (searchParams.get('status') as TransactionStatus) ?? 'ALL'
   )
-  const [detailTx,         setDetailTx]         = useState<Transaction | null>(null)
-  const [pendingAction,    setPendingAction]    = useState<PendingAction | null>(null)
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null)
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const { data: transactions = [], isLoading } = useGetTransactions()
@@ -76,7 +76,7 @@ export default function DisbursementsPage() {
     if (!pendingAction) return
     updateTransaction.mutate(
       {
-        id:      pendingAction.id,
+        id: pendingAction.id,
         payload: { status: pendingAction.type === 'approve' ? 'SUCCESS' : 'FAILED' },
       },
       { onSuccess: () => setPendingAction(null) }
@@ -95,9 +95,9 @@ export default function DisbursementsPage() {
     () =>
       getTransactionColumns({
         canApprove: role === 'admin' || role === 'superadmin',
-        onDetail:   tx => setDetailTx(tx),
-        onApprove:  id => setPendingAction({ id, type: 'approve' }),
-        onReject:   id => setPendingAction({ id, type: 'reject' }),
+        onDetail: tx => setDetailTx(tx),
+        onApprove: id => setPendingAction({ id, type: 'approve' }),
+        onReject: id => setPendingAction({ id, type: 'reject' }),
       }),
     [role]
   )
