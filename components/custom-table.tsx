@@ -12,10 +12,18 @@ import {
   type SortingState,
   type RowSelectionState,
   type OnChangeFn,
+  type PaginationState,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -25,22 +33,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100]
+
 export interface CustomTableProps<TData> {
   data: TData[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<TData, any>[]
   isLoading?: boolean
-  /** Controlled global search string from parent */
   globalFilter?: string
   onGlobalFilterChange?: (value: string) => void
-  /** Controlled row selection state from parent */
   rowSelection?: RowSelectionState
   onRowSelectionChange?: OnChangeFn<RowSelectionState>
+  getRowId?: (row: TData) => string
   pageSize?: number
-  /**
-   * Pass totalPage for server-side pagination display.
-   * If omitted, page count is derived from data length.
-   */
+  pageSizeOptions?: number[]
   totalPage?: number
   initialSorting?: SortingState
   emptyMessage?: string
@@ -55,37 +61,41 @@ export function CustomTable<TData>({
   onGlobalFilterChange,
   rowSelection = {},
   onRowSelectionChange,
-  pageSize = 10,
+  getRowId,
+  pageSize: initialPageSize = 10,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   totalPage,
   initialSorting = [],
   emptyMessage = 'Tidak ada data.',
   skeletonRows = 6,
 }: CustomTableProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>(initialSorting)
+  const [sorting,    setSorting]    = useState<SortingState>(initialSorting)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize:  initialPageSize,
+  })
 
   const table = useReactTable<TData>({
     data,
     columns,
-    state: {
-      sorting,
-      globalFilter,
-      rowSelection,
-    },
-    onSortingChange: setSorting,
+    state: { sorting, globalFilter, rowSelection, pagination },
+    onSortingChange:         setSorting,
     onGlobalFilterChange,
     onRowSelectionChange,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
-    // When totalPage is provided (server-side), keep page count as-is
+    onPaginationChange:      setPagination,
+    getCoreRowModel:         getCoreRowModel(),
+    getSortedRowModel:       getSortedRowModel(),
+    getFilteredRowModel:     getFilteredRowModel(),
+    getPaginationRowModel:   getPaginationRowModel(),
+    enableRowSelection:      true,
+    ...(getRowId && { getRowId }),
     ...(totalPage !== undefined && { pageCount: totalPage }),
   })
 
-  const currentPage  = table.getState().pagination.pageIndex + 1
-  const derivedTotal = totalPage ?? table.getPageCount()
-  const selectedCount = Object.keys(rowSelection).length
+  const currentPage    = pagination.pageIndex + 1
+  const derivedTotal   = totalPage ?? table.getPageCount()
+  const selectedCount  = Object.keys(rowSelection).filter(k => rowSelection[k]).length
+  const filteredCount  = table.getFilteredRowModel().rows.length
 
   return (
     <div className="flex flex-col gap-3">
@@ -127,9 +137,9 @@ export function CustomTable<TData>({
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map(row => (
+              table.getRowModel().rows.map((row, i) => (
                 <TableRow
-                  key={row.id}
+                  key={`${row.id}-${i}`}
                   data-state={row.getIsSelected() ? 'selected' : undefined}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -146,37 +156,63 @@ export function CustomTable<TData>({
 
       {/* Pagination footer */}
       <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+        {/* Left: count info */}
         <span>
           {isLoading ? (
             <Skeleton className="h-4 w-28" />
           ) : (
             <>
-              {table.getFilteredRowModel().rows.length} data
+              {filteredCount} data
               {selectedCount > 0 && ` · ${selectedCount} dipilih`}
             </>
           )}
         </span>
 
-        <div className="flex items-center gap-2">
-          <span>
-            Hal {currentPage} / {derivedTotal || 1}
-          </span>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight />
-          </Button>
+        {/* Right: page size + navigation */}
+        <div className="flex items-center gap-3">
+          {/* Per-page selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">Baris per hal.</span>
+            <Select
+              value={String(pagination.pageSize)}
+              onValueChange={v => {
+                table.setPageSize(Number(v))
+                table.setPageIndex(0)
+              }}
+            >
+              <SelectTrigger className="h-7 w-16 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(n => (
+                  <SelectItem key={n} value={String(n)} className="text-xs">
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Page info + prev/next */}
+          <div className="flex items-center gap-2">
+            <span>Hal {currentPage} / {derivedTotal || 1}</span>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronRight />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
