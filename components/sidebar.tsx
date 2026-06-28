@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ArrowLeftRight, ScrollText, Settings, Shield } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, ScrollText, Shield } from 'lucide-react'
+import { useUser } from '@/providers/user-provider'
 import {
   Sidebar,
   SidebarContent,
@@ -17,14 +18,14 @@ import {
 } from '@/components/ui/sidebar'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/disbursements', label: 'Disbursement',  icon: ArrowLeftRight },
-  { href: '/audit-logs',    label: 'Audit Log',     icon: ScrollText },
-  { href: '/settings',      label: 'Settings',      icon: Settings },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: null },
+  { href: '/disbursements', label: 'Disbursement', icon: ArrowLeftRight, roles: null },
+  { href: '/audit-logs', label: 'Audit Log', icon: ScrollText, roles: ['superadmin'] },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { role } = useUser()
 
   return (
     <Sidebar>
@@ -42,7 +43,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+              {NAV_ITEMS.filter(item => !item.roles || item.roles.includes(role)).map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton asChild isActive={pathname === href || pathname.startsWith(href + '/')}>
                     <Link href={href}>
