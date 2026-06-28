@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ArrowLeftRight, ScrollText, Shield } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, ScrollText, Shield, Coins } from 'lucide-react'
 import { useUser } from '@/providers/user-provider'
 import {
   Sidebar,
@@ -32,9 +32,9 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
           <div className="flex size-7 items-center justify-center rounded-md bg-primary">
-            <Shield className="size-4 text-primary-foreground" />
+            <Coins className="size-4 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">MyApp</span>
+          <span className="text-sm font-semibold tracking-tight">Lintas Payment</span>
         </div>
       </SidebarHeader>
 
