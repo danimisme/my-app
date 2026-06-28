@@ -27,7 +27,7 @@ export function DisbursementStats({ transactions, isLoading }: DisbursementStats
     return {
       totalToday:   todayTxs.length,
       amountToday:  todayTxs.reduce((sum, t) => sum + t.amount, 0),
-      pendingCount: transactions.filter(t => t.status === 'PENDING' || t.status === 'APPROVED').length,
+      pendingCount: transactions.filter(t => t.status === 'PENDING').length,
       successMonth: transactions.filter(
         t => t.status === 'SUCCESS' && localDateStr(new Date(t.created_at)).startsWith(monthStr)
       ).length,

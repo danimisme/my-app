@@ -11,40 +11,17 @@ import {
   Legend,
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
-import {
-  ArrowUpRight,
-  Banknote,
-  Clock,
-  CheckCircle2,
-  PlusCircle,
-  ListFilter,
-  ScrollText,
-} from 'lucide-react'
+import { PlusCircle, ListFilter, ScrollText } from 'lucide-react'
 import { useUser } from '@/providers/user-provider'
 import { useGetTransactions } from '@/lib/api/hooks/transaction'
-import { formatRupiah, formatDateShort } from '@/lib/format'
+import { formatDateShort } from '@/lib/format'
 import type { Transaction } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DisbursementStats } from '@/components/disbursement-stats'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
-
-// ── Derived stats ─────────────────────────────────────────────────────────────
-
-function getStats(txs: Transaction[]) {
-  const todayStr = new Date().toISOString().split('T')[0]
-  const monthStr = new Date().toISOString().slice(0, 7)
-
-  const todayTxs = txs.filter(t => t.created_at.startsWith(todayStr))
-
-  return {
-    totalDisbursementToday: todayTxs.length,
-    totalAmountToday: todayTxs.reduce((sum, t) => sum + t.amount, 0),
-    pendingApproval: txs.filter(t => t.status === 'PENDING' || t.status === 'APPROVED').length,
-    successThisMonth: txs.filter(t => t.status === 'SUCCESS' && t.created_at.startsWith(monthStr)).length,
-  }
-}
 
 // ── Chart data (7 days) ───────────────────────────────────────────────────────
 
@@ -78,46 +55,6 @@ function buildChartData(txs: Transaction[]) {
   return { labels, datasets }
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
-function StatCard({
-  title,
-  value,
-  sub,
-  icon: Icon,
-  loading,
-}: {
-  title: string
-  value: string
-  sub?: string
-  icon: React.ElementType
-  loading: boolean
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className="flex size-8 items-center justify-center rounded-md bg-muted">
-          <Icon className="size-4 text-foreground" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <>
-            <Skeleton className="h-8 w-32 mb-1" />
-            <Skeleton className="h-3 w-24" />
-          </>
-        ) : (
-          <>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
-            {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -126,35 +63,7 @@ export default function DashboardPage() {
 
   const { data: transactions = [], isLoading } = useGetTransactions()
 
-  const stats = getStats(transactions)
   const chartData = buildChartData(transactions)
-
-  const STAT_CARDS = [
-    {
-      title: 'Disbursement Hari Ini',
-      value: isLoading ? '-' : `${stats.totalDisbursementToday} Transaksi`,
-      sub: 'Total transaksi hari ini',
-      icon: ArrowUpRight,
-    },
-    {
-      title: 'Total Amount Hari Ini',
-      value: isLoading ? '-' : formatRupiah(stats.totalAmountToday),
-      sub: 'Jumlah nominal hari ini',
-      icon: Banknote,
-    },
-    {
-      title: 'Pending Approval',
-      value: isLoading ? '-' : `${stats.pendingApproval} Transaksi`,
-      sub: 'Menunggu persetujuan',
-      icon: Clock,
-    },
-    {
-      title: 'Sukses Bulan Ini',
-      value: isLoading ? '-' : `${stats.successThisMonth} Transaksi`,
-      sub: 'Berhasil bulan ini',
-      icon: CheckCircle2,
-    },
-  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -189,11 +98,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {STAT_CARDS.map(card => (
-          <StatCard key={card.title} {...card} loading={isLoading} />
-        ))}
-      </div>
+      <DisbursementStats transactions={transactions} isLoading={isLoading} />
 
       {/* Chart */}
       <Card>
