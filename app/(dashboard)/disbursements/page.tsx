@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useDebounce } from '@/lib/hooks/use-debounce'
-import { useSearchParams } from 'next/navigation'
-import { PlusCircle, RotateCcw, Search } from 'lucide-react'
+import { useDebounce } from '@/hooks/use-debounce'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Download, Layers, PlusCircle, RotateCcw, Search } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useUser } from '@/providers/user-provider'
-import { useGetTransactions, useUpdateTransaction } from '@/lib/api/hooks/transaction'
-import type { Transaction, TransactionStatus } from '@/lib/types'
+import { useGetTransactions, useUpdateTransaction } from '@/hooks/UseTransaction'
+import type { Transaction, TransactionStatus } from '@/models/Transaction'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DisbursementStats } from '@/components/disbursement-stats'
@@ -20,29 +20,63 @@ import { ActionConfirmDialog } from './components/ActionConfirmDialog'
 import { CreateDisbursementDialog } from './components/CreateDisbursementDialog'
 import type { PendingAction } from './components/ActionConfirmDialog'
 
+function exportCSV(rows: Transaction[]) {
+  const HEADERS = ['ID', 'Nama Pengirim', 'Bank', 'Nomor Rekening', 'Jumlah', 'Biaya Admin', 'Status', 'Tanggal']
+
+  const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+
+  const lines = [
+    HEADERS.join(','),
+    ...rows.map(t =>
+      [
+        t.id,
+        t.sender_name,
+        t.bank,
+        t.account_number,
+        t.amount,      // integer, no formatting
+        t.admin_fee,   // integer, no formatting
+        t.status,
+        t.created_at,
+      ]
+        .map(escape)
+        .join(',')
+    ),
+  ]
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  const date = new Date().toLocaleDateString('sv') // YYYY-MM-DD
+  a.href     = url
+  a.download = `disbursements-export-${date}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+
 export default function DisbursementsPage() {
   const { role } = useUser()
+  const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [globalFilter,    setGlobalFilter]    = useState('')
-  const debouncedFilter = useDebounce(globalFilter, 500)
-  const [rowSelection,    setRowSelection]    = useState<RowSelectionState>({})
-  const [statusFilter,    setStatusFilter]    = useState<TransactionStatus | 'ALL'>(
+  const [globalFilter,     setGlobalFilter]     = useState('')
+  const debouncedFilter  = useDebounce(globalFilter, 500)
+  const [rowSelection,     setRowSelection]     = useState<RowSelectionState>({})
+  const [statusFilter,     setStatusFilter]     = useState<TransactionStatus | 'ALL'>(
     (searchParams.get('status') as TransactionStatus) ?? 'ALL'
   )
-  const [detailTx,        setDetailTx]        = useState<Transaction | null>(null)
-  const [pendingAction,   setPendingAction]   = useState<PendingAction | null>(null)
+  const [detailTx,         setDetailTx]         = useState<Transaction | null>(null)
+  const [pendingAction,    setPendingAction]    = useState<PendingAction | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const { data: transactions = [], isLoading } = useGetTransactions()
-
   const updateTransaction = useUpdateTransaction()
 
   function handleConfirm() {
     if (!pendingAction) return
     updateTransaction.mutate(
       {
-        id: pendingAction.id,
+        id:      pendingAction.id,
         payload: { status: pendingAction.type === 'approve' ? 'SUCCESS' : 'FAILED' },
       },
       { onSuccess: () => setPendingAction(null) }
@@ -61,15 +95,23 @@ export default function DisbursementsPage() {
     () =>
       getTransactionColumns({
         canApprove: role === 'admin' || role === 'superadmin',
-        onDetail:  tx => setDetailTx(tx),
-        onApprove: id => setPendingAction({ id, type: 'approve' }),
-        onReject:  id => setPendingAction({ id, type: 'reject' }),
+        onDetail:   tx => setDetailTx(tx),
+        onApprove:  id => setPendingAction({ id, type: 'approve' }),
+        onReject:   id => setPendingAction({ id, type: 'reject' }),
       }),
     [role]
   )
 
+  // Rows selected (keyed by transaction id via getRowId)
+  const selectedTransactions = useMemo(
+    () => filteredData.filter(t => rowSelection[t.id]),
+    [filteredData, rowSelection]
+  )
+  const hasSelection = selectedTransactions.length > 0
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Disbursement</h1>
@@ -78,10 +120,16 @@ export default function DisbursementsPage() {
           </p>
         </div>
         {(role === 'operator' || role === 'admin' || role === 'superadmin') && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <PlusCircle />
-            Buat Disbursement
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push('/disbursements/batch')}>
+              <Layers />
+              Batch
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <PlusCircle />
+              Buat Disbursement
+            </Button>
+          </div>
         )}
       </div>
 
@@ -119,6 +167,23 @@ export default function DisbursementsPage() {
             Reset
           </Button>
         )}
+
+        {/* Export — only active when rows selected */}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!hasSelection}
+          onClick={() => exportCSV(selectedTransactions)}
+          className="ml-auto"
+        >
+          <Download />
+          Export CSV
+          {hasSelection && (
+            <span className="ml-1 rounded-full bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 leading-none">
+              {selectedTransactions.length}
+            </span>
+          )}
+        </Button>
       </div>
 
       <CustomTable
@@ -129,7 +194,8 @@ export default function DisbursementsPage() {
         onGlobalFilterChange={setGlobalFilter}
         rowSelection={rowSelection}
         onRowSelectionChange={setRowSelection}
-        pageSize={10}
+        getRowId={tx => tx.id}
+        pageSizeOptions={[10, 20, 30, 50, 100]}
         initialSorting={[{ id: 'created_at', desc: true }]}
         emptyMessage="Tidak ada data transaksi"
       />
