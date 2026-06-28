@@ -19,8 +19,8 @@ import {
 
 const ROLE_STYLES: Record<string, string> = {
   superadmin: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-  admin:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  operator:   'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
+  admin: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  operator: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
 }
 
 interface NavbarProps {
@@ -55,11 +55,12 @@ export function Navbar({ username, role }: NavbarProps) {
       <Popover>
         <PopoverTrigger asChild>
           <button className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted">
-            <Avatar size="sm">
-              <AvatarFallback>{initials}</AvatarFallback>
+            <Avatar size="lg">
+              <img src="/nadin-face.jpeg" alt="Avatar" className='w-full h-full rounded-full' />
+              {/* <AvatarFallback>{initials}</AvatarFallback> */}
             </Avatar>
             <div className="flex flex-col items-start leading-none">
-              <span className="text-sm font-medium text-foreground">{username}</span>
+              <span className="text-sm font-medium text-foreground capitalize">{username}</span>
               <span className={cn('mt-0.5 rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', roleBadge)}>
                 {role}
               </span>
@@ -68,14 +69,14 @@ export function Navbar({ username, role }: NavbarProps) {
           </button>
         </PopoverTrigger>
 
-        <PopoverContent align="end" className="w-56">
+        <PopoverContent align="end" className="w-80">
           {/* User info */}
           <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback>{initials}</AvatarFallback>
+            <Avatar className='h-16 w-16'>
+              <img src="/nadin-amizah.jpeg" alt="Avatar" className='w-full h-full rounded-full' />
             </Avatar>
             <PopoverHeader>
-              <PopoverTitle>{username}</PopoverTitle>
+              <PopoverTitle className='capitalize'>{username}</PopoverTitle>
               <PopoverDescription>
                 <span className={cn('inline-block rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', roleBadge)}>
                   {role}
