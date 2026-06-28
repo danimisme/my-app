@@ -1,13 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
-import { formatRupiah } from '@/lib/format'
+import { format } from 'date-fns'
+import { id as localeId } from 'date-fns/locale'
+import { CalendarIcon, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -43,6 +49,7 @@ export const disbursementSchema = z.object({
     .number({ invalid_type_error: 'Harus berupa angka' })
     .min(10_000, 'Minimal Rp 10.000')
     .max(999_999_999, 'Maksimal Rp 999.999.999'),
+  date: z.date({ required_error: 'Tanggal wajib dipilih' }),
   note: z.string().optional(),
 })
 
@@ -70,6 +77,8 @@ interface DisbursementFormProps {
 }
 
 export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: DisbursementFormProps) {
+  const [calendarOpen, setCalendarOpen] = useState(false)
+
   const form = useForm<DisbursementFormValues>({
     resolver: zodResolver(disbursementSchema),
     defaultValues: {
@@ -77,6 +86,7 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
       account_number: '',
       bank:           '',
       amount:         0,
+      date:           new Date(),
       note:           '',
     },
   })
@@ -112,7 +122,7 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
                 <FormLabel>Bank</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger aria-invalid={!!form.formState.errors.bank}>
+                    <SelectTrigger aria-invalid={!!form.formState.errors.bank} className='w-full'>
                       <SelectValue placeholder="Pilih bank..." />
                     </SelectTrigger>
                   </FormControl>
@@ -146,6 +156,47 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
           />
         </div>
 
+        {/* Date */}
+        <FormField
+          control={form.control}
+          name="date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tanggal Transaksi</FormLabel>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 size-4 shrink-0" />
+                      {field.value
+                        ? format(field.value, 'dd MMMM yyyy', { locale: localeId })
+                        : 'Pilih tanggal...'}
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={date => {
+                      field.onChange(date)
+                      setCalendarOpen(false)
+                    }}
+                    disabled={date => date > new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Amount + admin fee — 2 col */}
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
@@ -155,17 +206,12 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
               <FormItem>
                 <FormLabel>Jumlah Transfer</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Contoh: 1250000"
-                    inputMode="numeric"
-                    min={0}
-                    {...field}
+                  <CurrencyInput
+                    placeholder="0"
+                    value={field.value}
+                    onChange={field.onChange}
                   />
                 </FormControl>
-                {watchedAmount > 0 && (
-                  <FormDescription>{formatRupiah(Number(watchedAmount))}</FormDescription>
-                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -174,7 +220,7 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
           {/* Admin fee — read-only, derived */}
           <FormItem>
             <FormLabel>Biaya Admin</FormLabel>
-            <Input value={formatRupiah(adminFee)} readOnly className="bg-muted text-muted-foreground" />
+            <CurrencyInput value={adminFee} readOnly className="bg-muted text-muted-foreground cursor-default" />
             <FormDescription>Dihitung otomatis berdasarkan jumlah</FormDescription>
           </FormItem>
         </div>

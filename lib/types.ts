@@ -12,5 +12,5 @@ export interface Transaction {
   created_at: string
 }
 
-export type CreateTransactionPayload = Omit<Transaction, 'id' | 'created_at'>
+export type CreateTransactionPayload = Omit<Transaction, 'id'> & { created_at?: string }
 export type UpdateTransactionPayload = Partial<Omit<Transaction, 'id' | 'created_at'>>

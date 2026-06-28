@@ -42,6 +42,7 @@ export interface CustomTableProps<TData> {
    * If omitted, page count is derived from data length.
    */
   totalPage?: number
+  initialSorting?: SortingState
   emptyMessage?: string
   skeletonRows?: number
 }
@@ -56,10 +57,11 @@ export function CustomTable<TData>({
   onRowSelectionChange,
   pageSize = 10,
   totalPage,
+  initialSorting = [],
   emptyMessage = 'Tidak ada data.',
   skeletonRows = 6,
 }: CustomTableProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
   const table = useReactTable<TData>({
     data,
