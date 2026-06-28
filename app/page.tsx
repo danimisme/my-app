@@ -1,55 +1,56 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import Image from 'next/image'
 import { decodePayload } from '@/lib/jwt'
-import LogoutButton from '@/components/logout-button'
+import { AppShell } from '@/components/app-shell'
+import { LayoutDashboard, Users, Activity } from 'lucide-react'
+
+const STATS = [
+  { label: 'Total Users',    value: '128',  icon: Users,           trend: '+12 bulan ini' },
+  { label: 'Active Sessions',value: '24',   icon: Activity,        trend: 'Saat ini online' },
+  { label: 'Pages Visited',  value: '1.4k', icon: LayoutDashboard, trend: '+8% minggu ini' },
+]
 
 export default async function Home() {
   const cookieStore = await cookies()
   const accessToken = cookieStore.get('access_token')?.value
-
   if (!accessToken) redirect('/auth/login')
 
   const payload = decodePayload(accessToken)
+  const username = payload?.username ?? ''
+  const role = payload?.role ?? ''
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Selamat datang, {payload?.username ?? 'User'}!
+    <AppShell username={username} role={role}>
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Selamat datang, {username}!
           </h1>
-          <div className="flex flex-col gap-1 text-sm text-zinc-500 dark:text-zinc-400">
-            <p>
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">Username:</span>{' '}
-              {payload?.username}
-            </p>
-            <p>
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">Role:</span>{' '}
-              {payload?.role}
-            </p>
-            {payload?.exp && (
-              <p>
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">Token expires:</span>{' '}
-                {new Date(payload.exp * 1000).toLocaleTimeString('id-ID')}
-              </p>
-            )}
-          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Berikut ringkasan aktivitas aplikasi Anda.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <LogoutButton />
+        {/* Stat cards */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          {STATS.map(({ label, value, icon: Icon, trend }) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border bg-card p-5 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                <div className="flex size-8 items-center justify-center rounded-md bg-muted">
+                  <Icon className="size-4 text-foreground" />
+                </div>
+              </div>
+              <p className="mt-3 text-3xl font-bold tracking-tight text-foreground">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{trend}</p>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   )
 }
