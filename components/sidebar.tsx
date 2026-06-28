@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Settings, Shield } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, ScrollText, Settings, Shield } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -17,9 +17,10 @@ import {
 } from '@/components/ui/sidebar'
 
 const NAV_ITEMS = [
-  { href: '/',         label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/users',    label: 'Users',     icon: Users },
-  { href: '/settings', label: 'Settings',  icon: Settings },
+  { href: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/disbursements', label: 'Disbursement',  icon: ArrowLeftRight },
+  { href: '/audit-logs',    label: 'Audit Log',     icon: ScrollText },
+  { href: '/settings',      label: 'Settings',      icon: Settings },
 ]
 
 export function AppSidebar() {
@@ -27,7 +28,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      {/* Logo */}
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
           <div className="flex size-7 items-center justify-center rounded-md bg-primary">
@@ -37,7 +37,6 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Navigation */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
@@ -45,7 +44,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild isActive={pathname === href}>
+                  <SidebarMenuButton asChild isActive={pathname === href || pathname.startsWith(href + '/')}>
                     <Link href={href}>
                       <Icon />
                       <span>{label}</span>
