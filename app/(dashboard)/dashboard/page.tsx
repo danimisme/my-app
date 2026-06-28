@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         {role === 'operator' && (
-          <Button onClick={() => router.push('/disbursements/new')}>
+          <Button onClick={() => router.push('/disbursements')}>
             <PlusCircle />
             Buat Disbursement
           </Button>

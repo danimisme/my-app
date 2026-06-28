@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useDebounce } from '@/lib/hooks/use-debounce'
 import { useSearchParams } from 'next/navigation'
-import { PlusCircle, Search } from 'lucide-react'
+import { PlusCircle, RotateCcw, Search } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useUser } from '@/providers/user-provider'
 import { useGetTransactions, useUpdateTransaction } from '@/lib/api/hooks/transaction'
@@ -24,6 +25,7 @@ export default function DisbursementsPage() {
   const searchParams = useSearchParams()
 
   const [globalFilter,    setGlobalFilter]    = useState('')
+  const debouncedFilter = useDebounce(globalFilter, 500)
   const [rowSelection,    setRowSelection]    = useState<RowSelectionState>({})
   const [statusFilter,    setStatusFilter]    = useState<TransactionStatus | 'ALL'>(
     (searchParams.get('status') as TransactionStatus) ?? 'ALL'
@@ -106,13 +108,24 @@ export default function DisbursementsPage() {
           searchPlaceholder="Cari status..."
           className="w-44"
         />
+
+        {(globalFilter || statusFilter !== 'ALL') && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setGlobalFilter(''); setStatusFilter('ALL') }}
+          >
+            <RotateCcw />
+            Reset
+          </Button>
+        )}
       </div>
 
       <CustomTable
         columns={columns}
         data={filteredData}
         isLoading={isLoading}
-        globalFilter={globalFilter}
+        globalFilter={debouncedFilter}
         onGlobalFilterChange={setGlobalFilter}
         rowSelection={rowSelection}
         onRowSelectionChange={setRowSelection}
