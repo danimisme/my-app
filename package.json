@@ -20,6 +20,7 @@
     "date-fns": "^4.4.0",
     "jose": "^6.2.3",
     "lucide-react": "^1.21.0",
+    "msw": "^2.14.6",
     "next": "16.2.9",
     "radix-ui": "^1.6.0",
     "react": "19.2.4",
@@ -40,5 +41,10 @@
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
