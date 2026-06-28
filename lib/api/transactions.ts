@@ -1,10 +1,10 @@
 import apiClient from '@/lib/axios'
-import type { Transaction, CreateTransactionPayload, UpdateTransactionPayload } from '@/lib/types'
+import type { Transaction, CreateTransactionPayload, UpdateTransactionPayload } from '@/models/Transaction'
 
 export const transactionsApi = {
   getAll: async (): Promise<Transaction[]> => {
     const { data } = await apiClient.get<Transaction[]>('/transactions')
-    return data
+    return data 
   },
 
   create: async (payload: CreateTransactionPayload): Promise<Transaction> => {
