@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { ArrowUpRight, Banknote, CheckCircle2, Clock } from 'lucide-react'
-import type { Transaction } from '@/lib/types'
+import type { Transaction } from '@/models/Transaction'
 import { formatRupiah } from '@/lib/format'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'

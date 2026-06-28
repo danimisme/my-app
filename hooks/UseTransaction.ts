@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { transactionsApi, TRANSACTION_KEYS } from '@/lib/api/transactions'
-import type { CreateTransactionPayload, UpdateTransactionPayload } from '@/lib/types'
+import type { CreateTransactionPayload, UpdateTransactionPayload } from '@/models/Transaction'
 
 export function useGetTransactions() {
   return useQuery({

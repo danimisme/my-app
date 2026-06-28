@@ -55,9 +55,8 @@ export const disbursementSchema = z.object({
 
 export type DisbursementFormValues = z.infer<typeof disbursementSchema>
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 
-const BANK_OPTIONS = [
+export const BANK_OPTIONS = [
   'BCA', 'BRI', 'BNI', 'Mandiri', 'CIMB Niaga',
   'Danamon', 'Permata', 'BTN', 'OCBC', 'Maybank',
 ]
@@ -82,12 +81,11 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
   const form = useForm<DisbursementFormValues>({
     resolver: zodResolver(disbursementSchema),
     defaultValues: {
-      sender_name:    '',
+      sender_name: '',
       account_number: '',
-      bank:           '',
-      amount:         0,
-      date:           new Date(),
-      note:           '',
+      bank: '',
+      amount: 0,
+      date: new Date(),
     },
   })
 

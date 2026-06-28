@@ -1,6 +1,6 @@
 'use client'
 
-import { useCreateTransaction } from '@/lib/api/hooks/transaction'
+import { useCreateTransaction } from '@/hooks/UseTransaction'
 import {
   Dialog,
   DialogContent,
