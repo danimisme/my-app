@@ -126,7 +126,7 @@ function BatchTableRow({ index, control, onRemove, isOnly }: BatchRowProps) {
     fAmount.onChange(raw)
   }
 
-  const adminFee = calculateAdminFee(Number(fAmount.value) || 0)
+  const adminFee = Number(fAmount.value) > 0 ? calculateAdminFee(Number(fAmount.value)) : 0
 
   return (
     <div

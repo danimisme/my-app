@@ -41,7 +41,9 @@ export const disbursementSchema = z.object({
   account_number: z
     .string()
     .min(1, 'Nomor rekening wajib diisi')
-    .regex(/^\d{6,20}$/, 'Harus 6–20 digit angka'),
+    .regex(/^\d+$/, 'Hanya boleh angka')
+    .min(6, 'Minimal 6 digit')
+    .max(20, 'Maksimal 20 digit'),
   bank: z
     .string()
     .min(1, 'Bank wajib dipilih'),
@@ -90,7 +92,7 @@ export function DisbursementForm({ onSubmit, onCancel, isSubmitting }: Disbursem
   })
 
   const watchedAmount = form.watch('amount')
-  const adminFee      = calculateAdminFee(Number(watchedAmount) || 0)
+  const adminFee      = Number(watchedAmount) > 0 ? calculateAdminFee(Number(watchedAmount)) : 0
 
   return (
     <Form {...form}>
