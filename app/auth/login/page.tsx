@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -60,7 +60,6 @@ export default function LoginPage() {
 
       if (res.ok) {
         router.push('/')
-        router.refresh()
       } else {
         const data = await res.json()
         setServerError(data.error || 'Login gagal')
@@ -94,7 +93,7 @@ export default function LoginPage() {
               name="username"
               type="text"
               autoComplete="username"
-              placeholder="superadmin"
+              placeholder="Masukkan username"
               aria-invalid={!!fieldErrors.username}
               aria-describedby={fieldErrors.username ? 'username-error' : undefined}
             />
@@ -141,7 +140,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" disabled={loading} className="mt-1 w-full">
-            {loading ? 'Masuk…' : 'Masuk'}
+            {loading ? <div className="flex items-center justify-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Masuk</div>: 'Masuk'}
           </Button>
         </form>
       </div>
