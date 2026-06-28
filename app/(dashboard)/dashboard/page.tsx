@@ -5,15 +5,17 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js'
-import { Bar } from 'react-chartjs-2'
+import { Line } from 'react-chartjs-2'
 import { PlusCircle, ListFilter, ScrollText } from 'lucide-react'
 import { useUser } from '@/providers/user-provider'
-import { useGetTransactions } from '@/lib/api/hooks/transaction'
+import { useGetTransactions } from '@/hooks/UseTransaction'
 import { formatDateShort } from '@/lib/format'
 import type { Transaction } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,14 +23,12 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DisbursementStats } from '@/components/disbursement-stats'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
-
-// ── Chart data (7 days) ───────────────────────────────────────────────────────
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const STATUS_COLORS = {
   SUCCESS: '#22C55E',
   PENDING: '#EAB308',
-  FAILED:  '#EF4444',
+  FAILED: '#EF4444',
   APPROVED: '#3B82F6',
 }
 
@@ -42,20 +42,32 @@ function buildChartData(txs: Transaction[]) {
   const labels = days.map(d => formatDateShort(d.toISOString()))
   const statuses = ['SUCCESS', 'PENDING', 'APPROVED', 'FAILED'] as const
 
-  const datasets = statuses.map(status => ({
-    label: status,
-    data: days.map(d => {
-      const dayStr = d.toISOString().split('T')[0]
-      return txs.filter(t => t.status === status && t.created_at.startsWith(dayStr)).length
-    }),
-    backgroundColor: STATUS_COLORS[status],
-    borderRadius: 4,
-  }))
+  const datasets = statuses.map(status => {
+    const perDay = days.map(d => {
+      const dayStr = d.toLocaleDateString('sv')
+      const matched = txs.filter(
+        t => t.status === status && new Date(t.created_at).toLocaleDateString('sv') === dayStr
+      )
+      return { count: matched.length, amount: matched.reduce((s, t) => s + t.amount, 0) }
+    })
+
+    return {
+      label: status,
+      data: perDay.map(d => d.count),
+      amountData: perDay.map(d => d.amount),
+      borderColor: STATUS_COLORS[status],
+      backgroundColor: STATUS_COLORS[status] + '22',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0,
+      fill: false,
+    }
+  })
 
   return { labels, datasets }
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { role } = useUser()
@@ -76,7 +88,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Quick Actions */}
         {role === 'operator' && (
           <Button onClick={() => router.push('/disbursements')}>
             <PlusCircle />
@@ -110,17 +121,28 @@ export default function DashboardPage() {
             <Skeleton className="h-72 w-full" />
           ) : (
             <div className="h-72">
-              <Bar
+              <Line
                 data={chartData}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
                   plugins: {
                     legend: { position: 'top' },
+                    tooltip: {
+                      callbacks: {
+                        label: ctx => {
+                          const count  = ctx.parsed.y
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          const amount = (ctx.dataset as any).amountData?.[ctx.dataIndex] as number ?? 0
+                          const fmt    = new Intl.NumberFormat('id-ID').format(amount)
+                          return `${ctx.dataset.label}: ${count} transaksi  |  Rp ${fmt}`
+                        },
+                      },
+                    },
                   },
                   scales: {
-                    x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } },
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
                   },
                 }}
               />
