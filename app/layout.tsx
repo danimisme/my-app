@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/query-provider";
 import { MSWProvider } from "@/mocks/MSWProvider";
+import NextTopLoader from "nextjs-toploader";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -34,6 +35,7 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col">
+          <NextTopLoader showSpinner={false} />
           <MSWProvider>
             <QueryProvider>
               <TooltipProvider>{children}</TooltipProvider>
