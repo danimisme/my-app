@@ -17,40 +17,37 @@ import { TransactionDetail } from './components/TransactionDetail'
 import { getTransactionColumns } from './components/TransactionColumns'
 import { STATUS_OPTIONS } from './components/StatusConfig'
 import { ActionConfirmDialog } from './components/ActionConfirmDialog'
+import { toast } from 'sonner'
 import { CreateDisbursementDialog } from './components/CreateDisbursementDialog'
 import type { PendingAction } from './components/ActionConfirmDialog'
 
-function exportCSV(rows: Transaction[]) {
-  const HEADERS = ['ID', 'Nama Pengirim', 'Bank', 'Nomor Rekening', 'Jumlah', 'Biaya Admin', 'Status', 'Tanggal']
+async function exportCSV(rows: Transaction[]): Promise<void> {
+  const toastId = toast.loading('Menyiapkan file CSV...')
+  try {
+    const HEADERS = ['ID', 'Nama Pengirim', 'Bank', 'Nomor Rekening', 'Jumlah', 'Biaya Admin', 'Status', 'Tanggal']
+    const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
 
-  const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+    const lines = [
+      HEADERS.join(','),
+      ...rows.map(t =>
+        [t.id, t.sender_name, t.bank, t.account_number, t.amount, t.admin_fee, t.status, t.created_at]
+          .map(escape)
+          .join(',')
+      ),
+    ]
 
-  const lines = [
-    HEADERS.join(','),
-    ...rows.map(t =>
-      [
-        t.id,
-        t.sender_name,
-        t.bank,
-        t.account_number,
-        t.amount,      // integer, no formatting
-        t.admin_fee,   // integer, no formatting
-        t.status,
-        t.created_at,
-      ]
-        .map(escape)
-        .join(',')
-    ),
-  ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `disbursements-export-${new Date().toLocaleDateString('sv')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
 
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  const date = new Date().toLocaleDateString('sv') // YYYY-MM-DD
-  a.href = url
-  a.download = `disbursements-export-${date}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+    toast.success(`${rows.length} transaksi berhasil diekspor`, { id: toastId })
+  } catch {
+    toast.error('Gagal mengekspor CSV', { id: toastId })
+  }
 }
 
 
@@ -79,7 +76,13 @@ export default function DisbursementsPage() {
         id: pendingAction.id,
         payload: { status: pendingAction.type === 'approve' ? 'SUCCESS' : 'FAILED' },
       },
-      { onSuccess: () => setPendingAction(null) }
+      { onSuccess: () => {
+        setPendingAction(null)
+        toast.success(`Transaksi berhasil ${pendingAction.type === 'approve' ? 'disetujui' : 'ditolak'}`)
+      }, onError: () => {
+        setPendingAction(null)
+        toast.error(`Gagal ${pendingAction.type === 'approve' ? 'menyetujui' : 'menolak'} transaksi`)
+      } }
     )
   }
 
