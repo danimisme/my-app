@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { CalendarIcon, Loader2, Plus, ShieldAlert, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/providers/user-provider'
@@ -255,6 +256,12 @@ export default function BatchDisbursementPage() {
   const { role } = useUser()
   const router   = useRouter()
   const createTransaction = useCreateTransaction()
+  const [progress, setProgress] = useState<{
+    active: boolean
+    done: number
+    total: number
+    failedRows: number[]
+  } | null>(null)
 
   const form = useForm<BatchFormValues>({
     resolver: zodResolver(batchSchema),
@@ -276,26 +283,47 @@ export default function BatchDisbursementPage() {
   }
 
   async function onSubmit(values: BatchFormValues) {
-    await Promise.all(
-      values.rows.map(row => {
-        const d = new Date(row.date)
-        d.setHours(12, 0, 0, 0)
-        return createTransaction.mutateAsync({
-          sender_name: row.sender_name,
+    const total = values.rows.length
+    const failedRows: number[] = []
+    setProgress({ active: true, done: 0, total, failedRows: [] })
+
+    for (let i = 0; i < values.rows.length; i++) {
+      const row = values.rows[i]
+      const d = new Date(row.date)
+      d.setHours(12, 0, 0, 0)
+      try {
+        await createTransaction.mutateAsync({
+          sender_name:    row.sender_name,
           account_number: row.account_number,
-          bank: row.bank,
-          amount: row.amount,
-          admin_fee: calculateAdminFee(row.amount),
-          status: 'PENDING',
-          note: row.note ?? '',
-          created_at: d.toISOString(),
+          bank:           row.bank,
+          amount:         row.amount,
+          admin_fee:      calculateAdminFee(row.amount),
+          status:         'PENDING',
+          note:           row.note ?? '',
+          created_at:     d.toISOString(),
         })
+      } catch {
+        failedRows.push(i + 1)
+      }
+      setProgress({ active: true, done: i + 1, total, failedRows: [...failedRows] })
+    }
+
+    setProgress({ active: false, done: total, total, failedRows })
+
+    const succeeded = total - failedRows.length
+    if (failedRows.length === 0) {
+      toast.success(`${total} disbursement berhasil dibuat`)
+      router.push('/disbursements')
+    } else if (succeeded === 0) {
+      toast.error('Semua transaksi gagal diproses')
+    } else {
+      toast.warning(`${succeeded} berhasil, ${failedRows.length} gagal`, {
+        description: `Baris gagal: ${failedRows.join(', ')}`,
       })
-    )
-    router.push('/disbursements')
+    }
   }
 
-  const isSubmitting = createTransaction.isPending
+  const isSubmitting = progress?.active ?? false
 
   return (
     <div className="mx-auto">
@@ -361,6 +389,37 @@ export default function BatchDisbursementPage() {
             </div>
           </div>
 
+          {/* Progress bar */}
+          {progress && (
+            <div className="mt-4 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {progress.active
+                    ? `Memproses ${progress.done} dari ${progress.total} transaksi...`
+                    : progress.failedRows.length === 0
+                      ? `${progress.total} transaksi selesai`
+                      : `${progress.total - progress.failedRows.length} berhasil · ${progress.failedRows.length} gagal (baris ${progress.failedRows.join(', ')})`}
+                </span>
+                <span>{Math.round((progress.done / progress.total) * 100)}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-300',
+                    progress.active
+                      ? 'bg-primary'
+                      : progress.failedRows.length === 0
+                        ? 'bg-green-500'
+                        : progress.failedRows.length === progress.total
+                          ? 'bg-destructive'
+                          : 'bg-yellow-500'
+                  )}
+                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Footer */}
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
@@ -377,7 +436,7 @@ export default function BatchDisbursementPage() {
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="animate-spin" />}
-                {isSubmitting ? 'Menyimpan...' : `Buat ${fields.length} Disbursement`}
+                {isSubmitting ? `Memproses ${progress?.done ?? 0}/${progress?.total ?? fields.length}...` : `Buat ${fields.length} Disbursement`}
               </Button>
             </div>
           </div>
