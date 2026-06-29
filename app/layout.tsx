@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/query-provider";
 import { MSWProvider } from "@/mocks/MSWProvider";
 import NextTopLoader from "nextjs-toploader";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -41,6 +42,7 @@ export default function RootLayout({
               <TooltipProvider>{children}</TooltipProvider>
             </QueryProvider>
           </MSWProvider>
+          <Toaster richColors position="bottom-right" theme="light" />
         </body>
     </html>
   );
